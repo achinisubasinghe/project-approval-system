@@ -1,44 +1,43 @@
 # Blind-Match PAS
 
-Blind-Match PAS is an ASP.NET Core Blazor application for allocating final-year project supervisors without exposing student identities during the review stage. Students submit proposals by research area, supervisors browse anonymous proposals that match their expertise, and confirmed matches reveal both parties so collaboration can begin.
+Blind-Match PAS is an ASP.NET Core Blazor Server application for allocating final-year project supervisors without exposing student identities during proposal review. Students submit proposals by research area, supervisors browse anonymous proposals that match their expertise, and confirmed matches reveal both parties.
 
 ## Features
 
-- Student workspace for creating, editing, withdrawing, and tracking project proposals.
-- Supervisor workspace for managing expertise areas, reviewing anonymous proposals, expressing interest, and confirming matches.
-- Module leader workspace for managing users, research areas, proposals, and supervisor allocations.
-- Role-based access control using ASP.NET Core Identity roles.
-- EF Core SQL Server persistence with migrations and startup database seeding.
-- Project matching rules for supervisor expertise, duplicate interest prevention, first-confirmed match wins, and supervisor capacity checks.
-- Optional Anthropic-powered chatbot with role-aware project allocation tools.
-- xUnit test coverage for core project matching behavior.
+- **Student workspace.** Create, edit, withdraw, and track project proposals by research area.
+- **Supervisor workspace.** Maintain expertise areas, review anonymous proposals, express interest, and confirm matches within capacity limits.
+- **Module leader workspace.** Manage users, research areas, proposals, and manual supervisor assignments.
+- **Matching rules.** Enforces supervisor expertise matching, duplicate interest prevention, first-confirmed match wins, and per-supervisor capacity limits in `ProjectMatchingService`.
+- **Role-aware assistant.** Optional Anthropic Messages API chat assistant with role-scoped read and confirmed write tools.
+- **Automated persistence and testing.** Entity Framework Core SQL Server migrations run and seed baseline data on startup, with xUnit tests running against an in-memory SQLite database.
 
-## Tech Stack
+## Tech stack
 
-- .NET 10 / ASP.NET Core Blazor Server
+- .NET 10 and ASP.NET Core Blazor Server
 - MudBlazor
 - ASP.NET Core Identity
-- Entity Framework Core
-- SQL Server
-- xUnit with SQLite in-memory test database
-- Anthropic Messages API for the chatbot integration
+- Entity Framework Core with SQL Server
+- Anthropic Messages API
+- xUnit with SQLite in-memory tests
 
-## Requirements
+## Getting started
+
+### Prerequisites
 
 - .NET 10 SDK
-- SQL Server, SQL Server Express, or a compatible local SQL Server container
-- Optional: `dotnet-ef` CLI tool for manual migration commands
-- Optional: Anthropic API key for chatbot use
+- SQL Server, SQL Server Express, or a local SQL Server container
+- `dotnet-ef` CLI tool when running manual migration commands
+- Anthropic API key when using the chat assistant
 
-Install the EF Core CLI if you need to run migration commands manually:
+Install the EF Core CLI tool globally if needed:
 
 ```bash
 dotnet tool install --global dotnet-ef
 ```
 
-## Configuration
+### Configuration
 
-Development settings live in `appsettings.Development.json`. For local work, prefer user secrets for passwords and API keys:
+Development settings live in `appsettings.Development.json`. Store database credentials and API keys in .NET user secrets:
 
 ```bash
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost;Database=BlindMatchPas;User Id=sa;Password=YOUR_PASSWORD;TrustServerCertificate=True;"
@@ -46,48 +45,18 @@ dotnet user-secrets set "IdentityDefaults:ModuleLeader:Password" "ChangeMe!123"
 dotnet user-secrets set "Anthropic:ApiKey" "sk-ant-..."
 ```
 
-The chatbot is optional. The app can be developed without an Anthropic key, but chatbot requests will fail until `Anthropic:ApiKey` is configured.
-
-## Run Locally
-
-Restore dependencies:
+### Run locally
 
 ```bash
+git clone https://github.com/achinisubasinghe/project-approval-system.git
+cd project-approval-system
 dotnet restore
-```
-
-Start the app:
-
-```bash
 dotnet run
 ```
 
-The development launch profile uses:
+The development profile listens on `http://localhost:5022` and `https://localhost:7220`. On startup, `DbInitializer.SeedAsync` applies pending EF Core migrations and seeds development accounts.
 
-- HTTP: `http://localhost:5022`
-- HTTPS: `https://localhost:7220`
-
-The app applies EF Core migrations automatically on startup through `DbInitializer.SeedAsync`.
-
-## Database
-
-The main database provider is SQL Server. The configured development database name is `BlindMatchPas`.
-
-To apply migrations manually:
-
-```bash
-dotnet ef database update
-```
-
-To add a migration after changing the EF model:
-
-```bash
-dotnet ef migrations add MigrationName --output-dir Data/Migrations
-```
-
-## Seeded Development Data
-
-In the Development environment, startup seeding creates roles, baseline research areas, and development users when the required config values exist.
+### Seeded accounts
 
 | Role | Email | Password |
 | --- | --- | --- |
@@ -95,50 +64,58 @@ In the Development environment, startup seeding creates roles, baseline research
 | Student | `student@pas.local` | `Student!123` |
 | Supervisor | `supervisor@pas.local` | `Supervisor!123` |
 
-Seeded research areas:
+Startup seeding also creates the Artificial Intelligence, Web Development, Cybersecurity, and Cloud Computing research areas, and assigns Artificial Intelligence and Web Development expertise to `supervisor@pas.local`.
 
-- Artificial Intelligence
-- Web Development
-- Cybersecurity
-- Cloud Computing
+## Database migrations
 
-The development supervisor is seeded with Artificial Intelligence and Web Development expertise.
+Apply migrations manually to `BlindMatchPas`:
 
-## Tests
+```bash
+dotnet ef database update
+```
 
-Run the test suite:
+Create a new migration after changing the EF Core model:
+
+```bash
+dotnet ef migrations add MigrationName --output-dir Data/Migrations
+```
+
+## Testing
+
+Run the xUnit test suite:
 
 ```bash
 dotnet test
 ```
 
-The tests use SQLite in-memory storage and cover the matching service behavior, including expertise checks, duplicate interests, match confirmation, supervisor capacity, and module leader assignment.
+## Workflow
 
-## Project Structure
+1. A student submits a proposal with a title, abstract, technical stack, and research area.
+2. A supervisor configures expertise areas and browses matching proposals without seeing student names.
+3. The supervisor expresses interest, moving the proposal into review.
+4. The supervisor confirms the match if capacity is available.
+5. Confirmation locks the allocation and reveals student and supervisor contact details to both parties.
+6. A module leader monitors allocations and assigns remaining unmatched proposals.
+
+## Project structure
 
 ```text
-Components/                    Blazor UI pages, layouts, account pages, and shared components
-Components/Pages/Admin/        Module leader screens
-Components/Pages/Student/      Student proposal screens
-Components/Pages/Supervisor/   Supervisor review and matching screens
-Data/                          EF Core entities, DbContext, migrations, roles, and seeding
-Services/                      Project matching service and chatbot services
-Services/Chatbot/Tools/        Chatbot tool handlers for each role
-project-approval-system.Tests/ xUnit tests
-wwwroot/                       Static assets and application CSS
+project-approval-system/
+├── Components/
+│   ├── Account/
+│   ├── Layout/
+│   └── Pages/
+│       ├── Admin/
+│       ├── Student/
+│       └── Supervisor/
+├── Data/
+│   └── Migrations/
+├── Services/
+│   └── Chatbot/
+│       └── Tools/
+├── project-approval-system.Tests/
+├── wwwroot/
+├── Program.cs
+├── appsettings.json
+└── project-approval-system.csproj
 ```
-
-## Roles and Workflow
-
-1. A student submits a proposal with title, abstract, technical stack, and research area.
-2. A supervisor maintains expertise areas and browses matching proposals anonymously.
-3. The supervisor expresses interest, moving the proposal into review.
-4. The supervisor confirms the match if the project fits and capacity is available.
-5. The confirmed match reveals student and supervisor details.
-6. A module leader can oversee allocations and assign unmatched proposals when needed.
-
-## Notes
-
-- Do not use development seed passwords in production.
-- Keep connection strings and API keys out of committed configuration.
-- The app requires a valid `ConnectionStrings:DefaultConnection` value at startup.

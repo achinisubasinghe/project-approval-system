@@ -68,14 +68,14 @@
         else if (availableProposals.Count == 0)
         {
             <MudAlert Severity="Severity.Info">
-                No unmatched proposals are available in your expertise areas. New anonymous proposals will appear here when students submit them.
+                No unmatched proposals match your expertise areas. Submitted proposals appear here once students create them.
                 <MudButton Variant="Variant.Text" Color="Color.Primary" Href="/supervisor/interests">View my interests</MudButton>
             </MudAlert>
         }
         else
         {
             <MudAlert Severity="Severity.Info">
-                Review project fit without student identity. Express interest first, then confirm when the project is ready to supervise.
+                Review proposals anonymously. Express interest first, then confirm the match to reveal student contact details.
             </MudAlert>
         }
 
@@ -84,7 +84,7 @@
                 <MudPaper Class="pa-4" Elevation="1">
                     <MudStack Spacing="2">
                         <MudText Typo="Typo.h6">Review queue</MudText>
-                        <MudText Typo="Typo.body2">@availableProposals.Count proposal(s) match your expertise areas and remain unmatched.</MudText>
+                        <MudText Typo="Typo.body2">@availableProposals.Count @(availableProposals.Count == 1 ? "proposal matches" : "proposals match") your expertise areas and remain unmatched.</MudText>
                     </MudStack>
                 </MudPaper>
             </MudItem>
@@ -92,7 +92,7 @@
                 <MudPaper Class="pa-4" Elevation="1">
                     <MudStack Spacing="2">
                         <MudText Typo="Typo.h6">Confirmed matches</MudText>
-                        <MudText Typo="Typo.body2">@currentMatches confirmed match(es) count toward your capacity of @maxCapacity.</MudText>
+                        <MudText Typo="Typo.body2">@currentMatches confirmed @(currentMatches == 1 ? "match counts" : "matches count") toward your capacity of @maxCapacity.</MudText>
                         <MudButton Variant="Variant.Outlined" Href="/supervisor/matches">View matches</MudButton>
                     </MudStack>
                 </MudPaper>

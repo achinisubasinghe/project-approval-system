@@ -20,7 +20,7 @@ internal sealed class ModuleLeaderTools(
             ToolSchemas.Parse("""{"type":"object","properties":{"status":{"type":"string","enum":["Pending","UnderReview","Matched","Withdrawn"],"description":"Optional status filter."}},"additionalProperties":false}""")),
         new(
             "list_unmatched_proposals",
-            "List proposals that have no confirmed match yet (excludes Withdrawn).",
+            "List proposals that have no confirmed match yet, excluding Withdrawn.",
             ToolSchemas.Parse(ToolSchemas.Empty)),
         new(
             "list_supervisors_with_load",
@@ -28,7 +28,7 @@ internal sealed class ModuleLeaderTools(
             ToolSchemas.Parse(ToolSchemas.Empty)),
         new(
             "list_interests_for_proposal",
-            "List all supervisors who have expressed interest in a specific proposal (module leaders may see identities).",
+            "List all supervisors who have expressed interest in a specific proposal.",
             ToolSchemas.Parse("""{"type":"object","properties":{"proposalId":{"type":"integer","description":"The proposal ID."}},"required":["proposalId"],"additionalProperties":false}""")),
         new(
             "get_matching_stats",
@@ -36,8 +36,8 @@ internal sealed class ModuleLeaderTools(
             ToolSchemas.Parse(ToolSchemas.Empty)),
         new(
             "admin_assign",
-            "Assign a supervisor directly to a proposal, bypassing the supervisor-interest step. Requires the supervisor to have available capacity. Use list_supervisors_with_load to get supervisor IDs. This is a write action — the server will pause to ask the user to confirm before it actually runs.",
-            ToolSchemas.Parse("""{"type":"object","properties":{"proposalId":{"type":"integer","description":"The proposal ID."},"supervisorId":{"type":"string","description":"The supervisor's user ID (from list_supervisors_with_load)."}},"required":["proposalId","supervisorId"],"additionalProperties":false}""")),
+            "Assign a supervisor directly to a proposal when capacity is available. Call list_supervisors_with_load to look up supervisor IDs. This write action pauses for user confirmation before running.",
+            ToolSchemas.Parse("""{"type":"object","properties":{"proposalId":{"type":"integer","description":"The proposal ID."},"supervisorId":{"type":"string","description":"The supervisor's user ID from list_supervisors_with_load."}},"required":["proposalId","supervisorId"],"additionalProperties":false}""")),
     };
 
     public async Task<string> ExecuteAsync(string name, JsonElement args, ChatToolContext ctx, CancellationToken ct)

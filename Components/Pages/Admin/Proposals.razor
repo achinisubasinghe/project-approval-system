@@ -114,7 +114,7 @@
                 OwnerContact = p.Owner.ContactEmail,
                 Status = p.Status,
                 InterestCount = p.Interests.Count,
-                MatchedSupervisor = p.Match == null ? "-" : p.Match.Supervisor.DisplayName,
+                MatchedSupervisor = p.Match == null ? "None" : p.Match.Supervisor.DisplayName,
                 CanAssign = p.Status != ProposalStatus.Withdrawn && p.Status != ProposalStatus.Matched && p.Match == null,
             })
             .ToListAsync();
@@ -137,7 +137,7 @@
             .OrderBy(u => u.DisplayName)
             .Select(u => new SupervisorOption(
                 u.Id,
-                $"{u.DisplayName} ({counts.GetValueOrDefault(u.Id)}/{u.MaxProjectCapacity})"))
+                $"{u.DisplayName}, {counts.GetValueOrDefault(u.Id)}/{u.MaxProjectCapacity} assigned"))
             .ToList();
     }
 

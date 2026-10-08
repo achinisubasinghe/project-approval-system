@@ -133,7 +133,7 @@
 
         if (area.Proposals.Count > 0 || area.Supervisors.Count > 0)
         {
-            Snackbar.Add("Areas in use cannot be deleted.", Severity.Error);
+            Snackbar.Add("Cannot delete a research area that is in use.", Severity.Error);
             return;
         }
 

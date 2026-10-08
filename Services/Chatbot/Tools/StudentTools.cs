@@ -22,19 +22,19 @@ internal sealed class StudentTools(
             ToolSchemas.Parse("""{"type":"object","properties":{"proposalId":{"type":"integer","description":"The proposal ID."}},"required":["proposalId"],"additionalProperties":false}""")),
         new(
             "count_interest_on_my_proposal",
-            "Count how many supervisors have expressed interest in a specific proposal owned by the student. Returns a count only — never supervisor names or identities.",
+            "Count how many supervisors have expressed interest in a specific proposal owned by the student. Returns only the count, never supervisor names or identities.",
             ToolSchemas.Parse("""{"type":"object","properties":{"proposalId":{"type":"integer","description":"The proposal ID owned by the signed-in student."}},"required":["proposalId"],"additionalProperties":false}""")),
         new(
             "get_my_match",
-            "Get the confirmed supervisor match for one of the student's proposals. Returns supervisor name and contact email only if the proposal status is 'Matched'.",
+            "Get the confirmed supervisor match for one of the student's proposals. Returns supervisor name and contact email only when the proposal status is 'Matched'.",
             ToolSchemas.Parse("""{"type":"object","properties":{"proposalId":{"type":"integer","description":"The proposal ID owned by the signed-in student."}},"required":["proposalId"],"additionalProperties":false}""")),
         new(
             "list_research_areas",
-            "List all research areas available in the system (for reference when choosing a topic).",
+            "List all research areas available in the system.",
             ToolSchemas.Parse(ToolSchemas.Empty)),
         new(
             "withdraw_my_proposal",
-            "Withdraw one of the student's own proposals (only allowed while status is Pending or UnderReview). This is a write action — the server will pause to ask the user to confirm before it actually runs.",
+            "Withdraw one of the student's own proposals while status is Pending or UnderReview. This write action pauses for user confirmation before running.",
             ToolSchemas.Parse("""{"type":"object","properties":{"proposalId":{"type":"integer","description":"The proposal ID owned by the signed-in student."}},"required":["proposalId"],"additionalProperties":false}""")),
     };
 

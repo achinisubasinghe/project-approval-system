@@ -146,7 +146,7 @@ public sealed class ProjectMatchingService(
 
         if (proposal.Status is not (ProposalStatus.Pending or ProposalStatus.UnderReview))
         {
-            return OperationResult.Failure($"This proposal cannot be withdrawn (status: {proposal.Status}).");
+            return OperationResult.Failure($"This proposal cannot be withdrawn while its status is {proposal.Status}.");
         }
 
         proposal.Status = ProposalStatus.Withdrawn;

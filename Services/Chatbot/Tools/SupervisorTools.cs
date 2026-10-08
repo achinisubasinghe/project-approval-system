@@ -16,19 +16,19 @@ internal sealed class SupervisorTools(
     {
         new(
             "list_open_proposals_in_my_expertise",
-            "List open (Pending or UnderReview) proposals in the supervisor's expertise areas. Anonymous — never returns the student owner's name or email.",
-            ToolSchemas.Parse("""{"type":"object","properties":{"researchAreaId":{"type":"integer","description":"Optional: filter to a single research area ID from the supervisor's expertise."},"limit":{"type":"integer","description":"Max rows to return (default 20, max 50)."}},"additionalProperties":false}""")),
+            "List Pending or UnderReview proposals in the supervisor's expertise areas. Never returns the student owner's name or email.",
+            ToolSchemas.Parse("""{"type":"object","properties":{"researchAreaId":{"type":"integer","description":"Optional research area ID from the supervisor's expertise."},"limit":{"type":"integer","description":"Max rows to return, default 20 and max 50."}},"additionalProperties":false}""")),
         new(
             "get_proposal_anon",
-            "Get the anonymous details of a proposal (title, abstract, tech stack, group size, research area). Never returns the owner's identity. Use this for the blind-review flow.",
+            "Get the anonymous details of a proposal: title, abstract, tech stack, group size, and research area. Never returns the owner's identity.",
             ToolSchemas.Parse("""{"type":"object","properties":{"proposalId":{"type":"integer","description":"The proposal ID."}},"required":["proposalId"],"additionalProperties":false}""")),
         new(
             "list_my_interests",
-            "List proposals this supervisor has expressed interest in. Anonymous — proposals are identified by title/ID only, no student identities.",
+            "List proposals this supervisor has expressed interest in, identified by title and ID without student identities.",
             ToolSchemas.Parse(ToolSchemas.Empty)),
         new(
             "list_my_confirmed_matches",
-            "List confirmed matches for this supervisor. Because identity reveal has occurred, includes the student's display name and contact email.",
+            "List confirmed matches for this supervisor, including the student's display name and contact email.",
             ToolSchemas.Parse(ToolSchemas.Empty)),
         new(
             "get_my_capacity",
@@ -36,11 +36,11 @@ internal sealed class SupervisorTools(
             ToolSchemas.Parse(ToolSchemas.Empty)),
         new(
             "express_interest",
-            "Express interest in an open proposal (anonymous — the student is not notified of your identity until you confirm a match). Requires the proposal to be in your expertise area and not already matched. This is a write action — the server will pause to ask the user to confirm before it actually runs.",
+            "Express anonymous interest in an open proposal in your expertise area. The student does not see your identity until you confirm a match. This write action pauses for user confirmation before running.",
             ToolSchemas.Parse("""{"type":"object","properties":{"proposalId":{"type":"integer","description":"The proposal ID."}},"required":["proposalId"],"additionalProperties":false}""")),
         new(
             "confirm_match",
-            "Confirm a match on a proposal you have already expressed interest in. This reveals the student's identity. Requires available capacity. This is a write action — the server will pause to ask the user to confirm before it actually runs.",
+            "Confirm a match on a proposal you have already expressed interest in, revealing the student's identity if capacity is available. This write action pauses for user confirmation before running.",
             ToolSchemas.Parse("""{"type":"object","properties":{"proposalId":{"type":"integer","description":"The proposal ID you are confirming a match on."}},"required":["proposalId"],"additionalProperties":false}""")),
     };
 

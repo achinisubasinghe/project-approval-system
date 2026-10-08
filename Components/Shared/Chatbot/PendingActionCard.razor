@@ -4,7 +4,7 @@
     <MudStack Spacing="2">
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
             <MudIcon Icon="@StatusIcon" Color="@StatusColor" Size="Size.Small" />
-            <MudText Typo="Typo.body2"><b>@StatusLabel</b> — @State.Summary</MudText>
+            <MudText Typo="Typo.body2"><b>@StatusLabel.</b> @State.Summary</MudText>
         </MudStack>
 
         @if (State.Status == PendingActionStatus.AwaitingConfirmation)
@@ -61,7 +61,7 @@
 
     private string StatusLabel => State.Status switch
     {
-        PendingActionStatus.AwaitingConfirmation => "Confirm action?",
+        PendingActionStatus.AwaitingConfirmation => "Confirm action",
         PendingActionStatus.Executing => "Running",
         PendingActionStatus.Confirmed => "Done",
         PendingActionStatus.Canceled => "Canceled",

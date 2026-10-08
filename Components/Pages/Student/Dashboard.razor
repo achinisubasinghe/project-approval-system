@@ -71,21 +71,21 @@
         else if (LatestMatchedProposal is not null)
         {
             <MudAlert Severity="Severity.Success">
-                Your proposal "@LatestMatchedProposal.Title" has been matched. Open it to view the revealed supervisor details.
+                A supervisor confirmed "@LatestMatchedProposal.Title". Open the proposal to view supervisor contact details.
                 <MudButton Variant="Variant.Text" Color="Color.Success" Href="@($"/student/proposal/{LatestMatchedProposal.Id}")">View match</MudButton>
             </MudAlert>
         }
         else if (LatestActiveProposal is not null)
         {
             <MudAlert Severity="Severity.Info">
-                Your latest active proposal is still available for supervisor review. You can edit or withdraw it until it is matched.
+                Supervisors can review your active proposal anonymously. You can edit or withdraw it until a supervisor confirms a match.
                 <MudButton Variant="Variant.Text" Color="Color.Primary" Href="@($"/student/proposal/{LatestActiveProposal.Id}")">Review status</MudButton>
             </MudAlert>
         }
         else
         {
             <MudAlert Severity="Severity.Warning">
-                All submitted proposals are withdrawn. Submit a new proposal when you are ready for review.
+                You withdrew every submitted proposal. Submit a new proposal when ready.
                 <MudButton Variant="Variant.Text" Color="Color.Primary" Href="/student/proposal/new">New proposal</MudButton>
             </MudAlert>
         }

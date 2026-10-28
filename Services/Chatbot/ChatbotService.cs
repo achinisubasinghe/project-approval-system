@@ -8,10 +8,10 @@ using project_approval_system.Services.Chatbot.Models;
 namespace project_approval_system.Services.Chatbot;
 
 internal sealed class ChatbotService(
-    AnthropicClient client,
+    GroqClient client,
     IChatToolRegistry toolRegistry,
     IPendingActionStore pendingActionStore,
-    IOptions<AnthropicOptions> options,
+    IOptions<GroqOptions> options,
     IWebHostEnvironment env,
     ILogger<ChatbotService> logger) : IChatbotService
 {
@@ -23,7 +23,7 @@ internal sealed class ChatbotService(
         "admin_assign",
     };
 
-    private readonly AnthropicOptions _options = options.Value;
+    private readonly GroqOptions _options = options.Value;
     private string? _cachedSystemPromptTemplate;
 
     public async IAsyncEnumerable<ChatTurnEvent> RunTurnAsync(
@@ -127,28 +127,37 @@ internal sealed class ChatbotService(
         ChatToolContext ctx,
         [EnumeratorCancellation] CancellationToken ct)
     {
+        if (!client.IsConfigured)
+        {
+            yield return new TurnErrorEvent("Assistant API key is not configured.");
+            yield break;
+        }
+
         var toolDefs = toolRegistry.ForUser(user);
         var systemPrompt = BuildSystemPrompt(ctx);
 
-        var anthropicTools = toolDefs.Select(t => new AnthropicTool
+        var groqTools = toolDefs.Select(t => new GroqTool
         {
-            Name = t.Name,
-            Description = t.Description,
-            InputSchema = t.InputSchema,
+            Type = "function",
+            Function = new GroqFunctionDefinition
+            {
+                Name = t.Name,
+                Description = t.Description,
+                Parameters = t.InputSchema,
+            },
         }).ToList();
 
         for (var iteration = 0; iteration < _options.MaxToolIterations; iteration++)
         {
-            var request = new AnthropicMessagesRequest
+            var request = new GroqChatRequest
             {
                 Model = _options.Model,
                 MaxTokens = _options.MaxTokens,
-                System = systemPrompt,
-                Messages = history.Select(ToAnthropicMessage).ToList(),
-                Tools = anthropicTools.Count > 0 ? anthropicTools : null,
+                Messages = ToGroqMessages(systemPrompt, history),
+                Tools = groqTools.Count > 0 ? groqTools : null,
             };
 
-            List<AnthropicContentBlock>? assistantBlocks = null;
+            List<ChatContentBlock>? assistantBlocks = null;
             string? stopReason = null;
             Exception? streamError = null;
 
@@ -158,7 +167,7 @@ internal sealed class ChatbotService(
             {
                 while (true)
                 {
-                    AnthropicStreamItem? item = null;
+                    GroqStreamItem? item = null;
                     try
                     {
                         if (!await enumerator.MoveNextAsync())
@@ -175,16 +184,16 @@ internal sealed class ChatbotService(
 
                     switch (item)
                     {
-                        case AnthropicStreamItem.TextDelta td:
+                        case GroqStreamItem.TextDelta td:
                             yield return new TextDeltaEvent(td.Text);
                             break;
-                        case AnthropicStreamItem.ToolUseStarted tus:
+                        case GroqStreamItem.ToolUseStarted tus:
                             yield return new ToolCallStartedEvent(tus.Id, tus.Name);
                             break;
-                        case AnthropicStreamItem.StopReason sr:
+                        case GroqStreamItem.StopReason sr:
                             stopReason = sr.Reason;
                             break;
-                        case AnthropicStreamItem.MessageBuilt mb:
+                        case GroqStreamItem.MessageBuilt mb:
                             assistantBlocks = mb.Blocks;
                             break;
                     }
@@ -202,26 +211,24 @@ internal sealed class ChatbotService(
                 yield break;
             }
 
-            if (assistantBlocks is null)
+            if (assistantBlocks is null || assistantBlocks.Count == 0)
             {
                 yield return new TurnErrorEvent("The assistant returned no content.");
                 yield break;
             }
 
-            var assistantMessage = ToChatMessage(assistantBlocks);
+            var assistantMessage = new ChatMessage
+            {
+                Role = ChatRole.Assistant,
+                Content = assistantBlocks,
+            };
             history.Add(assistantMessage);
             yield return new AssistantMessageCompletedEvent(assistantMessage);
 
-            if (stopReason != "tool_use")
-            {
-                yield return new TurnCompletedEvent(stopReason ?? "end_turn");
-                yield break;
-            }
-
-            var toolUseBlocks = assistantBlocks.OfType<AnthropicToolUseBlock>().ToList();
+            var toolUseBlocks = assistantBlocks.Where(b => b.Type == ChatContentType.ToolUse).ToList();
             if (toolUseBlocks.Count == 0)
             {
-                yield return new TurnCompletedEvent(stopReason);
+                yield return new TurnCompletedEvent(stopReason ?? "stop");
                 yield break;
             }
 
@@ -229,11 +236,15 @@ internal sealed class ChatbotService(
             var writeGated = false;
             foreach (var call in toolUseBlocks)
             {
-                if (WriteToolNames.Contains(call.Name))
+                var toolCallId = call.ToolUseId ?? "";
+                var toolName = call.ToolName ?? "";
+                var toolInput = call.ToolInput ?? JsonDocument.Parse("{}").RootElement;
+
+                if (WriteToolNames.Contains(toolName))
                 {
-                    var argsJson = call.Input.GetRawText();
-                    var token = pendingActionStore.Enqueue(ctx.UserId, call.Id, call.Name, argsJson);
-                    var summary = SummarizeWriteAction(call.Name, call.Input);
+                    var argsJson = toolInput.GetRawText();
+                    var token = pendingActionStore.Enqueue(ctx.UserId, toolCallId, toolName, argsJson);
+                    var summary = SummarizeWriteAction(toolName, toolInput);
                     var placeholderJson = JsonSerializer.Serialize(new
                     {
                         status = "awaiting_user_confirmation",
@@ -242,12 +253,12 @@ internal sealed class ChatbotService(
                     toolResults.Add(new ChatContentBlock
                     {
                         Type = ChatContentType.ToolResult,
-                        ToolUseId = call.Id,
+                        ToolUseId = toolCallId,
                         ToolResultContent = placeholderJson,
                         ToolResultIsError = false,
                     });
                     writeGated = true;
-                    yield return new ActionConfirmationRequiredEvent(token, call.Id, call.Name, summary, argsJson);
+                    yield return new ActionConfirmationRequiredEvent(token, toolCallId, toolName, summary, argsJson);
                 }
                 else
                 {
@@ -255,12 +266,12 @@ internal sealed class ChatbotService(
                     bool isError;
                     try
                     {
-                        resultJson = await toolRegistry.ExecuteAsync(call.Name, call.Input, ctx, ct);
+                        resultJson = await toolRegistry.ExecuteAsync(toolName, toolInput, ctx, ct);
                         isError = false;
                     }
                     catch (Exception ex) when (ex is not OperationCanceledException)
                     {
-                        logger.LogWarning(ex, "Tool '{Tool}' failed", call.Name);
+                        logger.LogWarning(ex, "Tool '{Tool}' failed", toolName);
                         resultJson = JsonSerializer.Serialize(new { error = ex.Message });
                         isError = true;
                     }
@@ -268,12 +279,12 @@ internal sealed class ChatbotService(
                     toolResults.Add(new ChatContentBlock
                     {
                         Type = ChatContentType.ToolResult,
-                        ToolUseId = call.Id,
+                        ToolUseId = toolCallId,
                         ToolResultContent = resultJson,
                         ToolResultIsError = isError,
                     });
 
-                    yield return new ToolCallFinishedEvent(call.Id, call.Name, resultJson.Length, isError);
+                    yield return new ToolCallFinishedEvent(toolCallId, toolName, resultJson.Length, isError);
                 }
             }
 
@@ -375,52 +386,70 @@ internal sealed class ChatbotService(
         return File.ReadAllText(path);
     }
 
-    private static AnthropicMessage ToAnthropicMessage(ChatMessage message)
+    private static List<GroqMessage> ToGroqMessages(string systemPrompt, IList<ChatMessage> history)
     {
-        return new AnthropicMessage
+        var messages = new List<GroqMessage>
         {
-            Role = message.Role == ChatRole.User ? "user" : "assistant",
-            Content = message.Content.Select<ChatContentBlock, AnthropicContentBlock>(b => b.Type switch
-            {
-                ChatContentType.Text => new AnthropicTextBlock { Text = b.Text ?? "" },
-                ChatContentType.ToolUse => new AnthropicToolUseBlock
-                {
-                    Id = b.ToolUseId ?? "",
-                    Name = b.ToolName ?? "",
-                    Input = b.ToolInput ?? JsonDocument.Parse("{}").RootElement,
-                },
-                ChatContentType.ToolResult => new AnthropicToolResultBlock
-                {
-                    ToolUseId = b.ToolUseId ?? "",
-                    Content = b.ToolResultContent ?? "",
-                    IsError = b.ToolResultIsError,
-                },
-                _ => throw new InvalidOperationException($"Unknown content type {b.Type}"),
-            }).ToList(),
+            new() { Role = "system", Content = systemPrompt },
         };
-    }
 
-    private static ChatMessage ToChatMessage(List<AnthropicContentBlock> blocks)
-    {
-        var converted = new List<ChatContentBlock>();
-        foreach (var block in blocks)
+        foreach (var message in history)
         {
-            switch (block)
+            if (message.Role == ChatRole.User)
             {
-                case AnthropicTextBlock t:
-                    converted.Add(new ChatContentBlock { Type = ChatContentType.Text, Text = t.Text });
-                    break;
-                case AnthropicToolUseBlock tu:
-                    converted.Add(new ChatContentBlock
+                var toolResults = message.Content
+                    .Where(b => b.Type == ChatContentType.ToolResult)
+                    .ToList();
+                foreach (var tr in toolResults)
+                {
+                    messages.Add(new GroqMessage
                     {
-                        Type = ChatContentType.ToolUse,
-                        ToolUseId = tu.Id,
-                        ToolName = tu.Name,
-                        ToolInput = tu.Input,
+                        Role = "tool",
+                        ToolCallId = tr.ToolUseId ?? "",
+                        Content = tr.ToolResultContent ?? "",
                     });
-                    break;
+                }
+
+                var userText = string.Concat(message.Content
+                    .Where(b => b.Type == ChatContentType.Text)
+                    .Select(b => b.Text ?? ""));
+                if (!string.IsNullOrEmpty(userText))
+                {
+                    messages.Add(new GroqMessage
+                    {
+                        Role = "user",
+                        Content = userText,
+                    });
+                }
+            }
+            else
+            {
+                var assistantText = string.Concat(message.Content
+                    .Where(b => b.Type == ChatContentType.Text)
+                    .Select(b => b.Text ?? ""));
+                var toolCalls = message.Content
+                    .Where(b => b.Type == ChatContentType.ToolUse)
+                    .Select(b => new GroqToolCall
+                    {
+                        Id = b.ToolUseId ?? "",
+                        Type = "function",
+                        Function = new GroqFunctionCall
+                        {
+                            Name = b.ToolName ?? "",
+                            Arguments = b.ToolInput.HasValue ? b.ToolInput.Value.GetRawText() : "{}",
+                        },
+                    })
+                    .ToList();
+
+                messages.Add(new GroqMessage
+                {
+                    Role = "assistant",
+                    Content = string.IsNullOrEmpty(assistantText) ? null : assistantText,
+                    ToolCalls = toolCalls.Count > 0 ? toolCalls : null,
+                });
             }
         }
-        return new ChatMessage { Role = ChatRole.Assistant, Content = converted };
+
+        return messages;
     }
 }

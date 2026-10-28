@@ -49,8 +49,8 @@ builder.Services.AddMudServices();
 builder.Services.AddScoped<IProjectMatchingService, ProjectMatchingService>();
 
 builder.Services.AddMemoryCache();
-builder.Services.Configure<AnthropicOptions>(builder.Configuration.GetSection(AnthropicOptions.SectionName));
-builder.Services.AddHttpClient<AnthropicClient>();
+builder.Services.Configure<GroqOptions>(builder.Configuration.GetSection(GroqOptions.SectionName));
+builder.Services.AddHttpClient<GroqClient>();
 builder.Services.AddScoped<StudentTools>();
 builder.Services.AddScoped<SupervisorTools>();
 builder.Services.AddScoped<ModuleLeaderTools>();

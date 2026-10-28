@@ -8,7 +8,7 @@ Blind-Match PAS is an ASP.NET Core Blazor Server application for allocating fina
 - **Supervisor workspace.** Maintain expertise areas, review anonymous proposals, express interest, and confirm matches within capacity limits.
 - **Module leader workspace.** Manage users, research areas, proposals, and manual supervisor assignments.
 - **Matching rules.** Enforces supervisor expertise matching, duplicate interest prevention, first-confirmed match wins, and per-supervisor capacity limits in `ProjectMatchingService`.
-- **Role-aware assistant.** Optional Anthropic Messages API chat assistant with role-scoped read and confirmed write tools.
+- **Role-aware assistant.** Optional Groq API chat assistant with role-scoped read and confirmed write tools.
 - **Automated persistence and testing.** Entity Framework Core SQL Server migrations run and seed baseline data on startup, with xUnit tests running against an in-memory SQLite database.
 
 ## Tech stack
@@ -17,7 +17,7 @@ Blind-Match PAS is an ASP.NET Core Blazor Server application for allocating fina
 - MudBlazor
 - ASP.NET Core Identity
 - Entity Framework Core with SQL Server
-- Anthropic Messages API
+- Groq API (`qwen/qwen3.8-27b`)
 - xUnit with SQLite in-memory tests
 
 ## Getting started
@@ -27,7 +27,7 @@ Blind-Match PAS is an ASP.NET Core Blazor Server application for allocating fina
 - .NET 10 SDK
 - SQL Server, SQL Server Express, or a local SQL Server container
 - `dotnet-ef` CLI tool when running manual migration commands
-- Anthropic API key when using the chat assistant
+- Groq API key when using the chat assistant
 
 Install the EF Core CLI tool globally if needed:
 
@@ -42,7 +42,7 @@ Development settings live in `appsettings.Development.json`. Store database cred
 ```bash
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost;Database=BlindMatchPas;User Id=sa;Password=YOUR_PASSWORD;TrustServerCertificate=True;"
 dotnet user-secrets set "IdentityDefaults:ModuleLeader:Password" "ChangeMe!123"
-dotnet user-secrets set "Anthropic:ApiKey" "sk-ant-..."
+dotnet user-secrets set "Groq:ApiKey" "gsk_..."
 ```
 
 ### Run locally

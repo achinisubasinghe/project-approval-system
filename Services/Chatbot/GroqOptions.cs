@@ -1,14 +1,14 @@
 namespace project_approval_system.Services.Chatbot;
 
-public sealed class AnthropicOptions
+public sealed class GroqOptions
 {
-    public const string SectionName = "Anthropic";
+    public const string SectionName = "Groq";
 
-    public string Model { get; set; } = "claude-haiku-4-5-20251001";
+    public string Model { get; set; } = "qwen/qwen3.8-27b";
 
     public int MaxTokens { get; set; } = 2048;
 
-    public string BaseUrl { get; set; } = "https://api.anthropic.com";
+    public string BaseUrl { get; set; } = "https://api.groq.com/openai";
 
     public string SystemPromptPath { get; set; } = "Services/Chatbot/system-prompt.md";
 

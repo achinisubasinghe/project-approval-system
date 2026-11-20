@@ -2,6 +2,8 @@
 
 Blind-Match PAS is an ASP.NET Core Blazor Server application for allocating final-year project supervisors without exposing student identities during proposal review. Students submit proposals by research area, supervisors browse anonymous proposals that match their expertise, and confirmed matches reveal both parties.
 
+![Blind-Match PAS application screenshot](docs/screenshot.png)
+
 ## Features
 
 - **Student workspace.** Create, edit, withdraw, and track project proposals by research area.
